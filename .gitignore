@@ -130,3 +130,6 @@ dmypy.json
 
 # ignore image file that contains .png files that I used in lecture notes
 image/
+
+# 네이버 개발자 open api의 계정 정보를 반환하는 프로그램입니다. 
+Natural_Language/Daily_News/NaverDevelopers_account.py
