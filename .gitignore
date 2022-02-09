@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ignore image file that contains .png files that I used in lecture notes
+image/
