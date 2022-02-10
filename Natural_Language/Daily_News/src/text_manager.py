@@ -2,9 +2,9 @@ import pandas as pd
 
 import re 
 import nltk
+from konlpy.tag import Okt
 # 한문 - 한글 혼용 어휘를 한글로 변환해주는 라이브러리 
 import hanja 
-
 
 def translate_Chinese_character(sentence):
     '''
@@ -66,16 +66,48 @@ def remove_korean_stopwords(sentence):
 
     return result 
 
+def tokenize_korean_sentence(sentence):
+    '''
+    한국어 문장에 대한 토큰화를 진행합니다. 
+    토큰화 도구로는 Konlpy의 Okt를 활용합니다. 
+    +) stem = True옵션을 사용하면 일정수준의 리마타이징을 수행합니다. 
+    토큰화 진행 후, 각각의 문장에서 불용어 또한 한번 더 제거해줍니다. 
+    [args]
+    sentence 
+    [return]
+    tokenized sentence 
+    '''
+    stopwords = ['이', '있', '하', '것', '들', '그', '되', '수', '이', 
+                '보', '않', '없', '나', '사람', '주', '아니', '등', '같', 
+                '우리', '때', '년', '가', '한', '지', '대하', '오', '말', 
+                '일', '그렇', '위하', '때문', '그것', '두', '말하', '알', 
+                '그러나', '받', '못하', '일', '그런', '또', '문제', '더', 
+                '사회', '많', '그리고', '좋', '크', '따르', '중', '나오', 
+                '가지', '씨', '시키', '만들', '지금', '생각하', '그러', 
+                '속', '하나', '집', '살', '모르', '적', '월', '데', 
+                '자신', '안', '어떤', '내', '내', '경우', '명', '생각', 
+                '시간', '그녀', '다시', '이런', '앞', '보이', '번', '나', 
+                '다른', '어떻', '여자', '개', '전', '들', '사실', '이렇', 
+                '점', '싶', '말', '정도', '좀', '원', '잘', '통하', '소리', 
+                '놓']
+    okt = Okt()
+    tokenized = okt.morphs(sentence, stem= True)
+    result = [word for word in tokenized if not word in stopwords]
+
+    return result
+
+def preprocessing_korean(sentence):
+    sentence = translate_Chinese_character(sentence)
+    sentence = clean_text(sentence)
+    sentence = remove_korean_stopwords(sentence)
+    sentence = tokenize_korean_sentence(sentence)
+
+    return sentence 
+
 
 News = pd.read_excel('./result.xlsx')
 
 title = News[['title']]
 print(title)
-title['title'] = title['title'].apply(translate_Chinese_character)
-print(title)
-title['title'] = title['title'].apply(clean_text)
-print(title)
-title['title'] = title['title'].apply(remove_korean_stopwords)
-print(title)
-print(title['title'].isnull().sum())
 
+print(title['title'].apply(preprocessing_korean))
