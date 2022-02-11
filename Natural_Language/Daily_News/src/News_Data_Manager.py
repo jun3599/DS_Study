@@ -176,9 +176,9 @@ def scrap_news(search_keywords, start=1, display=100, sort='date'):
 
 
 if __name__ == '__main__':
-    result = scrap_news(search_keywords='문재인')
+    result = scrap_news(search_keywords='아르스 프락시아')
     print(result)
-    result.to_excel('./result.xlsx', index=False)
+    result.to_excel('./ars_praxia_result.xlsx', index=False)
 # import pandas as pd 
 
 # meta_df = pd.DataFrame(columns=['title','input_date','article'])
