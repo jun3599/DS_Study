@@ -1,6 +1,5 @@
 import numpy as np 
 import pandas as pd 
-import matplotlib.font_manager as fm
 
 from nltk import bigrams, ngrams, ConditionalFreqDist 
 import networkx as nx 
@@ -8,6 +7,7 @@ import matplotlib.pyplot as plt
 
 from text_manager import * 
 
+from collections import Counter
 plt.rcParams['axes.unicode_minus'] = False
 plt.rcParams['font.family'] = 'Malgun Gothic'
 
@@ -97,43 +97,75 @@ class Semantic_Network_Analyzer():
         '''
         nsize = np.array([v for v in node_values])
         # normalize
-        nsize = 1000 * (nsize-min(nsize)/ (max(nsize) - min(nsize)))    
+        nsize = 1000 * (nsize-min(nsize)) / (max(nsize) - min(nsize))    
         return nsize 
     
     def draw_network(self):
-        # unicode minus를 사용하지 않기 위한 설정 (minus 깨짐현상 방지)
 
-        # # 글꼴 설정 
-        # # plt.rcParams['font.family'] = 'Malgun Gothic'
-        # path = 'C:/Windows/Fonts/malgun.ttf'
-
-        # font_name = fm.FontProperties(fname=path, size=50).get_name()
-
-        # plt.rc('font', family=font_name)
-        # 그래프 객체 생성, 입력은 인접행렬 
         G = nx.from_pandas_adjacency(self.freq_df)
         centrality_values = nx.degree_centrality(G).values()
         layout = nx.random_layout(G)
-        
+        labels = nx.get_edge_attributes(G,'weight')
+
+
         options = {
-        'font_size': 16,
+        'font_size': 20,
         'node_color':list(centrality_values),
         'node_size':self.get_node_size(centrality_values),
         'alpha':0.7,
-        'cmap': plt.cm.Blues,
+        'cmap': plt.cm.rainbow,
         'font_family': 'Malgun Gothic'
         }
 
-        plt.figure(figsize=(15,15))
+        plt.figure(figsize=(20,20))
         plt.axis('off')
-        plt.title('뉴스 기사 의미망 분석 결과', fontsize=10)
+        plt.title('뉴스 기사 의미망 분석 결과', fontsize=20)
         nx.draw_networkx(G, pos=layout, **options)
+        nx.draw_networkx_edge_labels(G, pos=layout, edge_labels = labels);
+
+        plt.show()
+    
+    def draw_n_nodes_network(self, Top_n=10):
+        
+        # 가장 높은 등장 횟수를 지니는 상위 n개의 n그램 결과를 가져옵니다. 
+        counter = Counter(self.ngramed_list)
+        most_n = counter.most_common(Top_n) # 결과: ((word1, word2), 동시 등장 횟수)
+
+        # 노드의 입력을 위해 중복 단어를 제거한 리스트를 생성합니다. 
+        most_words = []
+        for dummy in most_n:
+            most_words.extend(dummy[0]) 
+        # 집합 변환 후, 리스트화를 통해 중복제거를 해줍니다.
+        most_words = list(set(most_words)) 
+
+        # 그래프 객체를 생성합니다. 
+        G = nx.Graph()
+        G.add_nodes_from(most_words) # 동시 등장 빈도가 높은 단어들로 노드를 생성합니다. 
+        # 간선을 추가합니다. 
+        for word_tuple, counter in dict(most_n).items():
+            if word_tuple in G.edges():
+                weight = G[word_tuple[0]][word_tuple[1]]['weight']
+                weight = weight + counter 
+                G[word_tuple[0]][word_tuple[1]]['weight'] = weight
+            else:
+                G.add_edge(word_tuple[0], word_tuple[1], weight= counter)
+        
+        # 그래프를 출력합니다. 
+        centrality_values = nx.degree_centrality(G).values() # 중심성향 값
+        layout = nx.planar_layout(G) # 레이아웃 지정 옵션 
+        labels = nx.get_edge_attributes(G,'weight') # 간선의 가중치 
+        options = {'font_size': 16,
+                'node_color':list(centrality_values),
+                'node_size':self.get_node_size(centrality_values),
+                'alpha':0.7,
+                'cmap': plt.cm.rainbow,
+                'font_family': 'Malgun Gothic'}
+
+        plt.figure(figsize=(20,20))
+        plt.axis('off')
+        plt.title('뉴스 기사 의미망 분석 결과', fontsize=20)
+        nx.draw_networkx(G, pos=layout,**options)
+        nx.draw_networkx_edge_labels(G, pos=layout, edge_labels = labels);
         plt.show()
 
 
-News = pd.read_excel('C:\\Users\\wnsgn\\Desktop\\pro_git\\data_science_study\\DS_Study\\result.xlsx')
-
-S = Semantic_Network_Analyzer(News, 'title')
-print(S.df)
-print(S.freq_df)
-S.draw_network()
