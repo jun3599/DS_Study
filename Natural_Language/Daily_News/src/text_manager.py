@@ -18,7 +18,7 @@ stopwords = ['이', '있', '하', '것', '들', '그', '되', '수', '이',
                 '시간', '그녀', '다시', '이런', '앞', '보이', '번', '나', 
                 '다른', '어떻', '여자', '개', '전', '들', '사실', '이렇', 
                 '점', '싶', '말', '정도', '좀', '원', '잘', '통하', '소리', 
-                '놓','에','과','만','의']
+                '놓','에','과','만','의','하다']
 
 def translate_Chinese_character(sentence):
     '''
@@ -79,7 +79,7 @@ def tokenize_korean_sentence(sentence):
     tokenized sentence 
     '''
     okt = Okt()
-    tokenized = okt.morphs(sentence, stem= True)
+    tokenized = okt.nouns(sentence)
     result = [word for word in tokenized if not word in stopwords]
 
     return result
