@@ -67,11 +67,12 @@ def remove_korean_stopwords(sentence):
 
     return result 
 
-def tokenize_korean_sentence(sentence):
+def tokenize_korean_sentence_nouns(sentence):
     '''
     한국어 문장에 대한 토큰화를 진행합니다. 
-    토큰화 도구로는 Konlpy의 Okt를 활용합니다. 
-    +) stem = True옵션을 사용하면 일정수준의 리마타이징을 수행합니다. 
+    토큰화 도구로는 Konlpy의 Okt를 활용합니다.  
+    +) stem = True옵션을 사용하면 일정수준의 리마타이징을 수행합니다. morphs 메소드 사용시. 
+    modify) 토픽 모델링에는 명사 단위로 관계를 파악하는것이 적합하다고 판단. -> okt.nouns로 해당 방식 수정  
     토큰화 진행 후, 각각의 문장에서 불용어 또한 한번 더 제거해줍니다. 
     [args]
     sentence 
@@ -88,7 +89,7 @@ def preprocessing_korean(sentence):
     sentence = translate_Chinese_character(sentence)
     sentence = clean_text(sentence)
     sentence = remove_korean_stopwords(sentence)
-    sentence = tokenize_korean_sentence(sentence)
+    sentence = tokenize_korean_sentence_nouns(sentence)
 
     return sentence 
 

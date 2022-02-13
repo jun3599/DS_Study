@@ -6,10 +6,24 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 from text_manager import * 
-
 from collections import Counter
-plt.rcParams['axes.unicode_minus'] = False
-plt.rcParams['font.family'] = 'Malgun Gothic'
+
+from wordcloud import WordCloud 
+
+# 폰트 설정 부분 
+# plt.rcParams['axes.unicode_minus'] = False
+# plt.rcParams['font.family'] = 'Malgun Gothic'
+import matplotlib as mpl
+import matplotlib.font_manager as fm
+
+# 로컬상에 위치한 글꼴의 위치를 지정합니다. 
+fontpath= 'C:/Users/wnsgn/AppData/Local/Microsoft/Windows/Fonts/SCDream6.otf'
+# font manager에 경로를 넘겨주어 객체를 생성합니다. 
+fontprop = fm.FontProperties(fname= fontpath, size=10)
+# fontfamily 설정을 변경해줍니다. 
+plt.rc('font', family='S-Core Dream')
+mpl.font_manager._rebuild()
+
 
 class Semantic_Network_Analyzer():
     def __init__(self,df,target_column):
@@ -114,7 +128,7 @@ class Semantic_Network_Analyzer():
         'node_size':self.get_node_size(centrality_values),
         'alpha':0.7,
         'cmap': plt.cm.rainbow,
-        'font_family': 'Malgun Gothic'
+        'font_family': 'S-Core Dream'
         }
 
         plt.figure(figsize=(20,20))
@@ -152,14 +166,14 @@ class Semantic_Network_Analyzer():
         
         # 그래프를 출력합니다. 
         centrality_values = nx.degree_centrality(G).values() # 중심성향 값
-        layout = nx.planar_layout(G) # 레이아웃 지정 옵션 
+        layout = nx.random_layout(G) # 레이아웃 지정 옵션 
         labels = nx.get_edge_attributes(G,'weight') # 간선의 가중치 
         options = {'font_size': 16,
                 'node_color':list(centrality_values),
                 'node_size':self.get_node_size(centrality_values),
                 'alpha':0.7,
                 'cmap': plt.cm.rainbow,
-                'font_family': 'Malgun Gothic'}
+                'font_family': 'S-Core Dream'}
 
         plt.figure(figsize=(20,20))
         plt.axis('off')
@@ -168,4 +182,47 @@ class Semantic_Network_Analyzer():
         nx.draw_networkx_edge_labels(G, pos=layout, edge_labels = labels);
         plt.show()
 
+
+# # wordcloud 출력을 위한 클레스를 선언합니다. 
+# # 추후 모든 분석 관련 class를 하나로 통합할 예정입니다. 
+class Word_Cloud_Analyzer():
+    def __init__(self,df, target_column):
+        self.df = df 
+        self.target_column = target_column 
+
+        self.preprocessed = self.df[self.target_column].apply(preprocessing_korean)
+        self.count_word()
+
+    def count_word(self):
+        
+        # 1. 데이터를 단어들의 리스트로 변환합니다. 
+        words= [] 
+        for sentence in self.preprocessed:
+            words.extend(sentence)
+        
+        # 2. 모든 단어의 빈도를 계산합니다.  
+        self.word_counter = Counter(words)
+        
+
+    def draw_word_cloud(self,n=30):
+        
+        # n = int(input("시각화에 포함시킬 상위 단어 n개(숫자)를 입력해주세요: "))
+        
+        # n번째 요소까지 슬라이싱 이후 dict로 변환 
+        top_words = dict(self.word_counter.most_common(n))
+
+        # 워드클라우드 객체 생성 
+        # 배경색 설정 및 사용하고자 하는 글꼴의 위치를 입력해 초기화 
+        wc = WordCloud(font_path='C:/Users/wnsgn/AppData/Local/Microsoft/Windows/Fonts/GodoB.ttf',background_color='white')
+        # 빈도수 기반 생성(입력으로 값:빈도의 dict입력)
+        wc.generate_from_frequencies(top_words)
+
+        figure= plt.figure(figsize=(12,12))
+        ax = figure.add_subplot(1,1,1)
+        ax.axis('off')
+        ax.imshow(wc)
+        plt.show()
+
+        # 해당 결과는 주피터 노트북 내에서만 확인이 가능합니다. 
+        # 이유는 다시 알아 보겠습니다. 
 
