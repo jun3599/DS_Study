@@ -2,19 +2,20 @@ import numpy as np
 import pandas as pd 
 
 from nltk import bigrams, ngrams, ConditionalFreqDist 
-import networkx as nx 
-import matplotlib.pyplot as plt
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.decomposition import TruncatedSVD
 
 from text_manager import * 
 from collections import Counter
 
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import networkx as nx 
 from wordcloud import WordCloud 
 
-# 폰트 설정 부분 
-# plt.rcParams['axes.unicode_minus'] = False
-# plt.rcParams['font.family'] = 'Malgun Gothic'
-import matplotlib as mpl
-import matplotlib.font_manager as fm
 
 # 로컬상에 위치한 글꼴의 위치를 지정합니다. 
 fontpath= 'C:/Users/wnsgn/AppData/Local/Microsoft/Windows/Fonts/SCDream6.otf'
@@ -209,11 +210,12 @@ class Word_Cloud_Analyzer():
         # n = int(input("시각화에 포함시킬 상위 단어 n개(숫자)를 입력해주세요: "))
         
         # n번째 요소까지 슬라이싱 이후 dict로 변환 
-        top_words = dict(self.word_counter.most_common(n))
+        top_words = self.word_counter.most_common(n)
+        top_words = dict(top_words)
 
         # 워드클라우드 객체 생성 
         # 배경색 설정 및 사용하고자 하는 글꼴의 위치를 입력해 초기화 
-        wc = WordCloud(font_path='C:/Users/wnsgn/AppData/Local/Microsoft/Windows/Fonts/GodoB.ttf',background_color='white')
+        wc = WordCloud(font_path='C:\\Users\\wnsgn\\AppData\\Local\\Microsoft\\Windows\\Fonts\\SCDream6.otf',background_color='white')
         # 빈도수 기반 생성(입력으로 값:빈도의 dict입력)
         wc.generate_from_frequencies(top_words)
 
@@ -223,6 +225,111 @@ class Word_Cloud_Analyzer():
         ax.imshow(wc)
         plt.show()
 
-        # 해당 결과는 주피터 노트북 내에서만 확인이 가능합니다. 
-        # 이유는 다시 알아 보겠습니다. 
+class Topic_Modeling_Analyzer():
+    def __init__(self,df, target_column):
+        self.df = df 
+        self.target_column = target_column
+
+        self.preprocessed = df[self.target_column].apply(preprocessing_korean)
+        
+    def show_distribution_of_sentence_length(self):
+        '''
+        해당 함수는 전처리된 문장 각각의 길이 분포에 대한 시각화 결과를 보여줍니다. 
+        해당 함수를 사용해 문장 길이의 분포를 확인하고, 문장의 길이가 지나치게 짧은 결과는 
+        추후 분석에서 제거 가능하도록 합니다. 
+        '''
+        sentences_length = list(map(len, self.preprocessed.to_list()))
+        sentences_length.sort(reverse=True)
+
+        y_pos = np.arange(len(self.preprocessed))
+
+        plt.figure(figsize=(12,12))
+        plt.barh(y_pos, sentences_length)
+        plt.ylabel('문장')
+        plt.yticks(ticks=[], labels=[])
+        plt.title("문장 길이 분포")
+        plt.grid(b=True)
+        plt.show() 
+
+    def delete_short_sentences(self,n=2):
+        '''
+        문장의 길이가 n 이하인 문장을 분석 대상에서 제외합니다.
+        대상 문장을 제거할 경우, selected_sentence 인스턴스가 생성됩니다. 
+        [args]
+        n : 문장의 토큰 갯수가 n개 이하인 문장은 분석 대상에서 제외합니다. 
+        [result]
+        self.selected_sentence 생성 
+        ''' 
+        sentences = self.preprocessed.to_list()
+        # 문장의 리스트(2중 리스트)를 입력받아 -> enumerate를 활용해 문장의 길이가 n이하인 문장의 인덱스를 모두 담습니다. 
+        drop_index= [] 
+        for index, sentence in enumerate(sentences):
+            if len(sentence) < n:
+                drop_index.append(index)
+        # 인덱스를 활용해 해당 문장을 삭제합니다. 
+        self.selected_sentences = np.delete(sentences, drop_index, axis=0)
+
+    def reverse_tokenization(self, tokenized_sentences_list):
+        '''
+        skilearn의 TfidfVectorizer을 이용하기 위해 토큰화를 되돌리는 작업을 진행합니다. 
+        이용자가 직접 호출 할 일은 없지만, 이후 tf-idf행렬 구성시 호출됩니다. 
+        [args] 함수에서 자동 호출됩니다. 
+        1. 만약 deleted_short_sentence가 호출되어 self.selected_sentences가 생성되었다면, 인자로 self.selcted_sentence가 입력됩니다. 
+        2. 그렇지 않은경우 self.preprocessed.to_list()가 직접 입력됩니다. 
+        '''
+        detokenized_doc= [] 
+        for tokenized_sentence in tokenized_sentences_list:
+            detokenized = ' '.join(tokenized_sentence)
+            detokenized_doc.append(detokenized)
+        return detokenized_doc
+
+    def calculate_tfidf(self):
+        '''
+        앞서, delete_short_sentence의 수행 여부에 따라 다르게 동작합니다. 
+        짧은 문장을 제거하고 self.selected_sentece 인스턴스가 생성된 경우 if 문의 내용을 
+        선언되지 않은 경우에는 elif문의 내용을 수행합니다. 
+        [args] . 
+        '''
+        if 'selected_sentences' in dir(self):
+            detokenized_sentences = self.reverse_tokenization(self.selected_sentences)
+        elif 'selected_sentences' not in dir(self):
+            tokenized_sentences = self.preprocessed.to_list()
+            detokenized_sentences = self.reverse_tokenization(tokenized_sentences)
+        
+        # tf-idf 행렬을 생성합니다. 
+        # 상위 1,000개의 단어를 보존 
+        vectorizer = TfidfVectorizer(max_features= 1000)
+        X = vectorizer.fit_transform(detokenized_sentences)
+        print("TF-IDF행렬 생성 완료!: shape= ",X.shape, '\n self.tfidf 호출시 객체확인 가능')
+        self.tfidf = X 
+        self.vectorizer = vectorizer
+
+    
+    def get_topics(self, components, feature_names, n=10):
+        for idx, topic in enumerate(components):
+            print("Topic %d:" % (idx+1), [(feature_names[i], topic[i].round(5)) for i in topic.argsort()[:-n - 1:-1]])
+
+    def latent_sementic_analysis(self, n_topics=10):
+        '''
+        앞서, calculate_tfidf 의 수행 여부에 따라 다르게 동작합니다. 
+        이미 tfidf를 계산한 경우 if 문의 내용을 
+        선언되지 않은 경우에는 elif문의 내용을 수행합니다. 
+        [args] . 
+        '''
+        if 'tfidf' in dir(self):
+            pass 
+        elif 'tfidf' not in dir(self):
+            self.calculate_tfidf()
+
+        X = self.tfidf
+
+        svd_model = TruncatedSVD(n_components= n_topics, algorithm='randomized', n_iter=100, random_state=807)
+        svd_model.fit_transform(X)
+        
+        self.svd_model = svd_model 
+
+        terms = self.vectorizer.get_feature_names() # 단어 집합. 1,000개의 단어가 저장됨
+        self.get_topics(svd_model.components_, terms, n_topics)
+
+
 
