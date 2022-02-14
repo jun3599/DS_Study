@@ -3,8 +3,10 @@ import pandas as pd
 
 from nltk import bigrams, ngrams, ConditionalFreqDist 
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer 
+from sklearn.decomposition import TruncatedSVD, LatentDirichletAllocation
+
+
 
 from text_manager import * 
 from collections import Counter
@@ -331,5 +333,26 @@ class Topic_Modeling_Analyzer():
         terms = self.vectorizer.get_feature_names() # 단어 집합. 1,000개의 단어가 저장됨
         self.get_topics(svd_model.components_, terms, n_topics)
 
+    def latent_Dirichlet_allocation(self, n_topics=10):
+        '''
+        앞서, calculate_tfidf 의 수행 여부에 따라 다르게 동작합니다. 
+        이미 tfidf를 계산한 경우 if 문의 내용을 
+        선언되지 않은 경우에는 elif문의 내용을 수행합니다. 
+        [args] . LatentDirichletAllocation
+        '''
+        if 'tfidf' in dir(self):
+            pass 
+        elif 'tfidf' not in dir(self):
+            self.calculate_tfidf()
 
+        X = self.tfidf
+
+        lda_model = LatentDirichletAllocation(n_components= n_topics, learning_method='online', max_iter=10, random_state=807)
+        lda_model.fit_transform(X)
+
+        self.lda_model = lda_model 
+
+        terms = self.vectorizer.get_feature_names() # 단어 집합. 1,000개의 단어가 저장됨
+
+        self.get_topics(lda_model.components_, terms, n_topics)
 
