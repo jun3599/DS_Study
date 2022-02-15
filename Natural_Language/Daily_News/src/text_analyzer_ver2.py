@@ -1,3 +1,4 @@
+# from imp import reload
 import numpy as np 
 import pandas as pd 
 
@@ -6,18 +7,14 @@ from nltk import bigrams, ngrams, ConditionalFreqDist
 from sklearn.feature_extraction.text import TfidfVectorizer 
 from sklearn.decomposition import TruncatedSVD, LatentDirichletAllocation
 
-
-
 from text_manager import * 
 from collections import Counter
-
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import networkx as nx 
 from wordcloud import WordCloud 
-
 
 # 로컬상에 위치한 글꼴의 위치를 지정합니다. 
 fontpath= 'C:/Users/wnsgn/AppData/Local/Microsoft/Windows/Fonts/SCDream6.otf'
@@ -314,7 +311,7 @@ class text_Analyzer():
         for idx, topic in enumerate(components):
             print("Topic %d:" % (idx+1), [(feature_names[i], topic[i].round(5)) for i in topic.argsort()[:-n - 1:-1]])
 
-    def latent_sementic_analysis(self, n_topics=10):
+    def latent_sementic_analysis(self):
         '''
         앞서, calculate_tfidf 의 수행 여부에 따라 다르게 동작합니다. 
         이미 tfidf를 계산한 경우 if 문의 내용을 
@@ -346,15 +343,17 @@ class text_Analyzer():
             else:
                 self.calculate_tfidf()
 
+        n_topics= int(input("그룹화를 진행할 토픽의 수를 입력해주세요: "))
         X = self.tfidf
 
         svd_model = TruncatedSVD(n_components= n_topics, algorithm='randomized', n_iter=100, random_state=807)
         svd_model.fit_transform(X)
         
         self.svd_model = svd_model 
-
+        self.svd_model_n_topics = n_topics
+        
         terms = self.vectorizer.get_feature_names() # 단어 집합. 1,000개의 단어가 저장됨
-        self.get_topics(svd_model.components_, terms, n_topics)
+        self.get_topics(svd_model.components_, terms, 10)
 
     def latent_Dirichlet_allocation(self, n_topics=10):
         '''
@@ -387,6 +386,8 @@ class text_Analyzer():
                     self.calculate_tfidf()
             else:
                 self.calculate_tfidf()
+        
+        n_topics= int(input("그룹화를 진행할 토픽의 수를 입력해주세요: "))
 
         X = self.tfidf
 
@@ -394,8 +395,70 @@ class text_Analyzer():
         lda_model.fit_transform(X)
 
         self.lda_model = lda_model 
-
+        self.lda_model_n_topics = n_topics
+        
         terms = self.vectorizer.get_feature_names() # 단어 집합. 1,000개의 단어가 저장됨
+        
+        self.get_topics(lda_model.components_, terms, 10)
 
-        self.get_topics(lda_model.components_, terms, n_topics)
+    def visualization_lda_results(self):
+        '''
+        해당 시각화 방식은 코드에디터에서는 사용이 불가하며, 
+        주피터 노트북 내에서만 시각화가 가능합니다. 
+        '''
+        import pyLDAvis 
+        import pyLDAvis.sklearn 
+        pyLDAvis.enable_notebook()
 
+        if 'lda_model' not in dir(self):
+            self.latent_Dirichlet_allocation()
+
+        # reload(pyLDAvis)
+        # reload(pyLDAvis.sklearn)
+
+        lda_model = self.lda_model 
+        tfidf = self.tfidf
+        vectorizer = self.vectorizer 
+
+        vis = pyLDAvis.sklearn.prepare(lda_model, tfidf, vectorizer)
+        # vis = sklearn.prepare(self.lda_model, self.tfidf, self.vectorizer)
+        return pyLDAvis.display(vis)
+        # pyLDAvis.show(vis)
+        # pyLDAvis.save_html(vis, '/result.html')
+
+    def make_main_topic_df(self):
+        # Create Document - Topic Matrix
+        data = self.tfidf
+        lda_model = self.lda_model
+        lda_output = lda_model.fit_transform(data)
+        
+        n_topics =2 
+        # column names
+        # topicnames = ["Topic" + str(i) for i in range(lda_model.n_topics)]
+        topicnames = ["Topic" + str(i) for i in range(self.lda_model_n_topics)]
+
+        # index names
+        docnames = ["Doc" + str(i) for i in range(data.shape[0])]
+
+        # Make the pandas dataframe
+        df_document_topic = pd.DataFrame(np.round(lda_output, 2), columns=topicnames, index=docnames)
+
+        # Get dominant topic for each document
+        dominant_topic = np.argmax(df_document_topic.values, axis=1)
+        df_document_topic['dominant_topic'] = dominant_topic
+
+        # Styling
+        def color_green(val):
+            color = 'green' if val > .1 else 'black'
+            return 'color: {col}'.format(col=color)
+
+        def make_bold(val):
+            weight = 700 if val > .1 else 400
+            return 'font-weight: {weight}'.format(weight=weight)
+
+        # Apply Style
+        # df_document_topics = df_document_topic.head(15).style.applymap(color_green).applymap(make_bold)
+        df_document_topics = df_document_topic.style.applymap(color_green).applymap(make_bold)
+        self.document_topics = df_document_topic
+
+        return df_document_topics
