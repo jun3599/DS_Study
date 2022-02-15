@@ -399,6 +399,11 @@ class text_Analyzer():
         
         terms = self.vectorizer.get_feature_names() # 단어 집합. 1,000개의 단어가 저장됨
         
+        print('*'*20)
+        print('--- Model validation scores ---')
+        print("Log Likelihood Score: ", lda_model.score(X))
+        print("Perplexity: ", lda_model.perplexity(X))
+        print('*'*20)
         self.get_topics(lda_model.components_, terms, 10)
 
     def visualization_lda_results(self):
@@ -427,6 +432,9 @@ class text_Analyzer():
         # pyLDAvis.save_html(vis, '/result.html')
 
     def make_main_topic_df(self):
+        if 'lda_model' not in dir(self):
+            self.latent_Dirichlet_allocation()
+        
         # Create Document - Topic Matrix
         data = self.tfidf
         lda_model = self.lda_model
@@ -462,3 +470,43 @@ class text_Analyzer():
         self.document_topics = df_document_topic
 
         return df_document_topics
+
+    def find_best_lda_model(self):
+        test_components = list(map(int, input('테스트하고자 하는 topic수의 목록을 띄어쓰기로 구분지어 입력후 enter를 눌러주세요.').split( )))
+        
+        # 추후 수정이 필요한 부분입니다. (수정사항: tf-idf 구성 이전 문장 길이 지정 옵션 및 인터렉션 추가)
+        if 'tfidf' not in dir(self):
+            self.calculate_tfidf()
+        X = self.tfidf
+
+        result_dict= {}
+        for n_topics in test_components:
+            
+            lda_model = LatentDirichletAllocation(n_components= n_topics, learning_method='online', max_iter=10, random_state=807)
+            lda_model.fit_transform(X)
+            
+            result_dict[f'n_topics: {n_topics}'] = {"Log Likelihood Score": lda_model.score(X), "Perplexity": lda_model.perplexity(X)}
+        print(pd.DataFrame(result_dict))
+    
+    # def find_best_lda_model(self):
+    #     from sklearn.model_selection import GridSearchCV 
+        
+    #     # 추후 수정이 필요한 부분입니다. (수정사항: tf-idf 구성 이전 문장 길이 지정 옵션 및 인터렉션 추가)
+    #     if 'tfidf' not in dir(self):
+    #         self.calculate_tfidf()
+        
+    #     data = self.tfidf
+
+    #     # lda모델 초기화     
+    #     lda_model = LatentDirichletAllocation()
+
+    #     grid = GridSearchCV(cv=None, error_score='raise',
+    #                         estimator=LatentDirichletAllocation(learning_method='online', max_iter=10, random_state=807),
+    #                         param_grid={'n_components': [3, 4, 5, 6, 7]},
+    #                         n_jobs=-1,
+    #                         scoring=estimator.score(data),
+    #                         verbose=1)
+
+        
+    #     grid.fit(data)
+    #     print(pd.DataFrame(grid.cv_results_))
