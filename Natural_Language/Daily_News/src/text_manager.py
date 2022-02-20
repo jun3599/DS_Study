@@ -3,8 +3,11 @@ import pandas as pd
 import re 
 import nltk
 from konlpy.tag import Okt
+from konlpy.tag import Mecab
 # 한문 - 한글 혼용 어휘를 한글로 변환해주는 라이브러리 
 import hanja 
+
+tagger = Mecab('C:\\mecab\\mecab-ko-dic')
 
 stopwords = ['이', '있', '하', '것', '들', '그', '되', '수', '이', 
                 '보', '않', '없', '나', '사람', '주', '아니', '등', '같', 
@@ -79,9 +82,12 @@ def tokenize_korean_sentence_nouns(sentence):
     [return]
     tokenized sentence 
     '''
-    okt = Okt()
-    tokenized = okt.nouns(sentence)
-    result = [word for word in tokenized if not word in stopwords]
+    # okt = Okt()
+    # tokenized = okt.nouns(sentence)
+
+    tagger = Mecab('C:\\mecab\\mecab-ko-dic')
+    tokenized = tagger.nouns(sentence)
+    result = [word for word in tokenized if (word not in stopwords) and (len(word) >=2)]
 
     return result
 
