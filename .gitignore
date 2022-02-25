@@ -136,3 +136,6 @@ Natural_Language/Daily_News/src/NaverDevelopers_account.py
 
 # 데이터 파일을 숨깁니다. 
 **.xlsx
+
+# soynlpy를 위한 학습데이터 
+Natural_Language/tutorials/딥러닝을_이용한_자연어처리_입문/2016-10-20.txt
