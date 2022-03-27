@@ -139,3 +139,11 @@ Natural_Language/Daily_News/src/NaverDevelopers_account.py
 
 # soynlpy를 위한 학습데이터 
 Natural_Language/tutorials/딥러닝을_이용한_자연어처리_입문/2016-10-20.txt
+
+# 테스트 프로그램 
+**/test.py
+# 계정 로드를 위한 파일 
+**/account.py 
+# 테스트 문서 
+**/test.text
+
