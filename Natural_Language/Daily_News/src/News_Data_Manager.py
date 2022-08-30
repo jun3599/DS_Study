@@ -7,6 +7,7 @@ from pprint import pprint
 import pandas as pd 
 
 import time
+from datetime import datetime 
 import multiprocessing as mp 
 # 네이버 개정정보를 반환하는 함수가 담긴 .py파일입니다. 
 from NaverDevelopers_account import * 
@@ -71,6 +72,7 @@ class Naver_News_Scrapper():
         
         # 쿼리할 url을 생성합니다. 
         keywords = quote(search_keywords, encoding='utf-8')
+        # keywords = f'{keywords}&sm=tab_opt&sort=0&ds=2022.03.06&de=2022.03.06'
 
         # 반복문을 통해 1000까지 조회하면서 값을 추가합니다. 
         columns = ['description','link','originallink','pubDate','title']
@@ -79,7 +81,7 @@ class Naver_News_Scrapper():
         # 루프 진행 
         start = 1 
         while start < 1000:
-            url = 'https://openapi.naver.com/v1/search/news.json?query={}&start={}&display={}&sort={}'.format(keywords,start,display,sort)
+            url = 'https://openapi.naver.com/v1/search/news.json?query={}&start={}&display={}&sort={}&sm=tab_opt&sort=0&ds=2022.03.06&de=2022.03.06'.format(keywords,start,display,sort)
 
             # 검색 url과 유저정보를 담은 header을 입력하고 요청을 보냅니다. 
             res = requests.get(url, headers=headers)
@@ -177,7 +179,7 @@ class Naver_News_Scrapper():
         [Exception]
 
         '''
-        query_date = time.nowstrftime("%Y%m%d_%H%M")   
+        query_date = datetime.now().strftime("%Y%m%d_%H%M")   
         meta_info = self.get_news_meta_info(search_keywords, start, display, sort)
         # 링크만 리스트로 만들어 return_parse_able_links를 호출합니다. 
         # 결과로써, 파싱 가능한 링크만을 담아옵니다. 

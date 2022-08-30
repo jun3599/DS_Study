@@ -90,6 +90,7 @@ class facebook_browser():
 
         # 초기 화면 접근 
         driver.get(url)
+        driver = fill_header(driver)
         driver.implicitly_wait(20)
         time.sleep(random.randint(2,5))
         driver = deal_with_modal_popup(driver)
